@@ -56,6 +56,8 @@ principal_uf_por_setor <-
   group_by(SETOR) |>
   filter(TOTAL == max(TOTAL))
 
+principal_uf_por_setor <- principal_uf_por_setor |> rename(UF = SG_UF_NCM)
+
 ## Identificando o setor com maior volume de exportações para cada UF
 
 principal_setor_por_uf <-
@@ -63,6 +65,8 @@ principal_setor_por_uf <-
   group_by(SG_UF_NCM) |>
   filter(TOTAL == max(TOTAL)) |>
   arrange(SETOR)
+
+principal_setor_por_uf <- principal_setor_por_uf |> rename(UF = SG_UF_NCM)
 
 ## Preaparação de indicadores por setor
 
@@ -141,15 +145,17 @@ indicadores_por_uf_ano <-
     ICP = sqrt(ICP)
   )
 
-indicadores_por_uf_ano |>
-  select(-c(7:8))
-
 indicadores_por_destino_ano <-
   indicadores_por_destino |>
-  select(CO_ANO, SG_UF_NCM, ICD) |>
+  dplyr::select(CO_ANO, SG_UF_NCM, ICD) |>
   group_by(SG_UF_NCM, CO_ANO) |>
   summarise(ICD = sum(ICD, na.rm =T)) |>
   mutate(ICD = sqrt(ICD))
 
 indicadores_por_uf_ano <- full_join(indicadores_por_uf_ano, indicadores_por_destino_ano)
 
+indicadores_por_uf_ano <- indicadores_por_uf_ano[,-c(7:8)]
+
+indicadores_por_uf_ano$SG_UF_NCM <- as_factor(indicadores_por_uf_ano$SG_UF_NCM)
+
+indicadores_por_uf_ano <- indicadores_por_uf_ano |> rename(UF = SG_UF_NCM)

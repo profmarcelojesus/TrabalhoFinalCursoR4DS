@@ -197,7 +197,9 @@ Embora seja preferível que as variáveis apresentem uma relação de dependênc
 
 Nesse estudo assumiu-se que os indices de vantagem comparativa podem ser explicados em parte pelo indices de concentração de modo que o percentual total de variância explicada dos índices de competitividade pelos scores do Ranking, chamado de medida de redundância total (MRT), seja significativo. Seguindo @hairjr2009, a seleção das variáveis estatísticas para análise considerou três critérios: o nível de significância, a magnitude da correlação canônica e a medida de redundância.
 
-O nível de significância entre as correlações canônicas foi testado por meio do teste Lambda de Wilks usando a aproximação F de Rao ao nível de significância de 95%. A magnitude da correlação foi medida pela correlação entre as variáveis independentes e cada variável canônica $u_n$ e entre as variáveis dependentes e cada variável canônica $v_n$, ambas com $n = 1, ..., 6$. Já a MRT foi obtida pela estimação do percentual de variância explicada a partir dos dois conjuntos de dados [@favero2017].
+O nível de significância entre as correlações canônicas foi testado por meio do teste de Pillai usando a aproximação F de Rao ao nível de significância de 95%. A magnitude da correlação foi medida pela correlação entre as variáveis independentes e cada variável canônica $u_n$ e entre as variáveis dependentes e cada variável canônica $v_n$, ambas com $n = 1, ..., 3$. Já a MRT foi obtida pela estimação do percentual de variância explicada a partir dos dois conjuntos de dados [@favero2017].
+
+## Análise dos resultados
 
 A seguir são apresentados os principais, para cada setor a UF que apresentou o maior volume de exportações no período. Destaca-se o caso de São que aparece como lider em exportações em 10 dos 25 setores analisados.
 
@@ -210,12 +212,11 @@ principal_uf_por_setor |>
     .fns = ~ .x / 1000000
     )
   ) |>
-  kbl(valign = "c", align = c("l", "l", "r", "r", "r", "r", "r", "r"), 
+  kbl(valign = "c",  
       caption = capt, digits = 2) %>% 
   column_spec(2, width = "10cm") %>% 
-  collapse_rows(columns = 1, valign = "middle") %>% 
   kable_styling(full_width = T, font_size = 10, 
-                latex_options = c("striped", "hold_position", "scale_down"))
+                bootstrap_options = c("striped", "hold_position", "scale_down"))
 
 ```
 Outra informação importante é o setor predominando em cada UF representando a principal atividade exportadora do Estado. Verifica-se que os produtos do Complexo Soja são os principais produtos de exportação em 11 dos 27 Estados brasileiros, o que indinca alta concentração em poucos produtos.
@@ -229,12 +230,10 @@ principal_setor_por_uf |>
     .fns = ~ .x / 1000000
     )
   ) |>
-  kbl(valign = "c", align = c("l", "l", "r", "r", "r", "r", "r", "r"), 
-      caption = capt, digits = 2) %>% 
+  kbl(valign = "c", caption = capt, digits = 2) %>% 
   column_spec(2, width = "10cm") %>% 
-  collapse_rows(columns = 1, valign = "middle") %>% 
   kable_styling(full_width = T, font_size = 10, 
-                latex_options = c("striped", "hold_position", "scale_down"))
+                bootstrap_options = c("striped", "hold_position", "scale_down"))
 
 ```
 A tabela a seguir apresenta o resumo dos indicadores de vantagem comparativa e concentração calculados para servir de base para as análises posteriores.
@@ -257,8 +256,7 @@ img.matcor(correl, type = 2)
 Os scores de correlação entre as variáveis podem ser observados na tabela a seguir.
 
 ```{r tabela6}
-tbl <- correl$XYcor
-tbl |> 
+correl$XYcor |> 
   DT::datatable(options = list(dom = 't')) |> 
   DT::formatStyle(columns = c(1:7), fontSize = '75%') |> 
   formatRound(columns=c(1:7), digits=3)
@@ -303,6 +301,6 @@ Como não era objetivo deste relatório a análise aprofunda dos indicadores, co
 
 <div id="refs"></div>
 
-## Apêndice - Scripts R
+## Apêndice
 
-Scripts e dados -> https://github.com/profmarcelojesus/TrabalhoFinalCursoR4DS
+#### Scripts e dados -> https://github.com/profmarcelojesus/TrabalhoFinalCursoR4DS

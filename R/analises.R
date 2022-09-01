@@ -1,10 +1,6 @@
 ## Teste normalidade multivariada
 
-indicadores_por_uf_ano <- indicadores_por_uf_ano[,-c(7:8)]
-
-indicadores_por_uf_ano$SG_UF_NCM <- as_factor(indicadores_por_uf_ano$SG_UF_NCM)
-
-res <- mvn(data = indicadores_por_uf_ano[,-c(2:3)], subset = 'SG_UF_NCM', mvnTest = 'hz', tol = 1e-35)
+res <- mvn(data = indicadores_por_uf_ano[,-c(2:3)], subset = 'UF', mvnTest = 'hz', tol = 1e-35)
 
 res.multivariateNormality <- map_dfr(res$multivariateNormality, ~ bind_rows(.))
 
@@ -38,18 +34,18 @@ table(res.univariateNormality$Variable)
 ## Verificando outliers multivariados
 
 indicadores_por_uf_ano[,-2] |>
-  group_by(SG_UF_NCM) |>
+  group_by(UF) |>
   doo(~mahalanobis_distance(.)) |>
   filter(is.outlier == TRUE)
 
 ## Verificando homogeneidade das matrizes de covariância e variâncias
 
-res <- box_m(indicadores_por_uf_ano[,-c(1:2)], indicadores_por_uf_ano$SG_UF_NCM)
+res <- box_m(indicadores_por_uf_ano[,-c(1:2)], indicadores_por_uf_ano$UF)
 
 ## Verificando a homogeneidade de variâncias
 
 teste_levene <- function(coluna) {
-  leveneTest(coluna ~ as_factor(SG_UF_NCM),
+  leveneTest(coluna ~ as_factor(UF),
              indicadores_por_uf_ano,
              center = mean)
 }
@@ -69,10 +65,10 @@ cor(indicadores_por_uf_ano[,-c(1:3)])
 ## Verificando a relação linear entre as variáveis dependentes
 
 plots <- indicadores_por_uf_ano[,-c(2:3)] |>
-  group_by(SG_UF_NCM) |>
+  group_by(UF) |>
   doo(~ggpairs(.), result = 'plots')
 
-ms <- plots |> filter(SG_UF_NCM  == 'MS')
+ms <- plots |> filter(UF  == 'MS')
 
 ms$plots
 
@@ -85,7 +81,7 @@ variaveis <- cbind(indicadores_por_uf_ano$VCRS,
                    indicadores_por_uf_ano$GL,
                    indicadores_por_uf_ano$ICD)
 
-modelo <- manova(variaveis   ~ SG_UF_NCM, data = indicadores_por_uf_ano)
+modelo <- manova(variaveis   ~ UF, data = indicadores_por_uf_ano)
 
 summary(modelo, test = "Pillai")
 
@@ -95,11 +91,11 @@ summary.aov(modelo)
 
 ## Testes post-hocs
 
-indicadores_por_uf_ano$SG_UF_NCM <- as_factor(indicadores_por_uf_ano$SG_UF_NCM)
+indicadores_por_uf_ano$UF <- as_factor(indicadores_por_uf_ano$UF)
 
-res <- TukeyHSD(x = aov(VCRS ~ SG_UF_NCM, data = indicadores_por_uf_ano), 'SG_UF_NCM', conf.level = 0.95)
+res <- TukeyHSD(x = aov(VCRS ~ UF, data = indicadores_por_uf_ano), 'UF', conf.level = 0.95)
 
-res <- data.frame(res$SG_UF_NCM)
+res <- data.frame(res$UF)
 
 res[res$p.adj > 0.05, ]
 
