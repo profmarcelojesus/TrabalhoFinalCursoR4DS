@@ -305,11 +305,4 @@ Como não era objetivo deste relatório a análise aprofunda dos indicadores, co
 
 ## Apêndice - Scripts R
 
-```{r echo=TRUE, warning=FALSE, cache=TRUE, file='R/tabelas_resumo.R'}
-
-```
-
-```{r echo=TRUE, warning=FALSE, file='R/analises.R'}
-
-
-```
+Scripts e dados -> https://github.com/profmarcelojesus/TrabalhoFinalCursoR4DS
