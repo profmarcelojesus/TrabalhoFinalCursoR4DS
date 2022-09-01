@@ -1,0 +1,315 @@
+---
+title: "Trabalho Final Curso R4DS"
+author: "Marcelo Chaves de Jesus"
+output: 
+  html_document: 
+    theme: cerulean
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, error = FALSE)
+options(knitr.kable.NA = '')
+source("R/pacotes.R", encoding="utf-8", local = knitr::knit_global())
+source("R/tabelas_resumo.R", encoding="utf-8", local = knitr::knit_global())
+source("R/analises.R", encoding="utf-8", local = knitr::knit_global())
+
+```
+
+## Apresentação
+
+O objetivo do presente trabalho é apresentar a aplicação dos conceitos aprendidos no curso na análise de dados de exportações e importações brasileiras no período de 2012 a 2021. 
+
+As técnicas de análise utilizadas consistiram na aplicação de indices de competitividade e de concentração, com foco principalmente nos produtos do agronegócio.
+
+Após a extração dos ìndices buscou-se verificar se existe relação entre a concentração das exportações em determinados produtos ou destinos e as vantagens comparativas e relativas nas exportações.
+
+Por hipótese espera-se que os estados com menores índices de concentração apresentem maiores índices de vantagem comparativa por serem mais diversificados.
+
+## Criação do projeto e preparação do ambiente
+
+O primeiro passo foi criar um novo projeto por meio do camando `usethis::create_project('~/TrabalhoFinalCursoR4DS')`
+
+O camando acima cria o diretório 'TrabalhoFinalCursoR4DS' na pasta do usuário, cria a pasta 'R', o arquivo '.gitignore' e o arquivo 'TrabalhoFinalCursoR4DS.Rproj' e em seguida inicia uma nova sessão do RStudio. 
+
+As informações de configuração do Git, bem como a chave SSH foram previamente configuradas de modo que foram necessários apenas os comandos `usethis::use_git()` e `usethis::use_github()` para que o projeto fosse criado e carregado no diretório https://github.com/profmarcelojesus/TrabalhoFinalCursoR4DS.
+
+Seguindo as orientações de organização do projeto foram criadas as pastas 'data', 'data-raw' e 'docs' por meio do camando `usethis::use_directory()`.
+
+Os scripts foram organizados em três arquivos principais: 'analises.R', 'carga_tabelas.R', 'pacotes.R' e 'tabelas_resumo.R'.
+
+## Carregamento dos dados brutos
+
+Os dados utilizados na análise formam obtidos no site do Ministério da Economia no endereço https://balanca.economia.gov.br/. O diretório raiz de onde seriam baixados os arquivos foi salvo na variável `site`.
+
+Para a carga das tabelas dimensão necessárias foi criando um vetor com o nome dos arquivos .csv a serem carregados. 
+
+Para evitar a repetição de códigos foi criada uma função que recebe o caminho onde os arquivos estão armazenados e o nome do arquivo. Essas informações são passados por meio dos commandos `tabelas_dimensao <- purrr::map2(nome_tabelas, rep('/tabelas/', 4), carrega_tabelas)`, `exportacoes <- purrr::map2_dfr(c(2012:2021), rep('/comexstat-bd/ncm/EXP_', 10), carrega_tabelas)` e `importacoes <- purrr::map2_dfr(c(2012:2021), rep('/comexstat-bd/ncm/IMP_', 10), carrega_tabelas)`, resultando em três tabelas com os dados brutos a serem analisados.
+
+Os setores de produtos foram definidos de acordo com a classificação do Ministério da Agricultura Pecuária e Abastecimento (MAPA) disponível no endereço https://indicadores.agricultura.gov.br/agrostat/index.htm.
+Os dados foram copiados manualmente e organizados no arquivo `agrupamentos.csv`
+
+Com a finalidade de obter uma tabela com valores de exportações e importações para cada produto, por ano, pais e setor foram aplicadas as seguintes transformações:
+
+- A coluna VL_FOB que representa o valor da operação de exportação ou importações foi renomeada em cada tabela para V_EXP e V_IMP, respectivamente.
+- Os dados foram agrupados por ano, uf e código NCM.
+- As tabelas exportacoes e importacoes foram unidas de modo a formar uma única tabela com ambas informações para cada setor/UF/ano nomeada como operacoes.
+- Acrescentou-se à tabela operacoes os dados de setor do agronegócio contidos na tabela agrupamento.
+
+A tabela operacoes foi então armazenada na pasta data para servir de base para as próximas etapas.
+
+```{r eval=FALSE, cache=TRUE, file='R/carga_tabelas.R', include=FALSE}
+
+```
+
+## Criando as tabelas resumo
+
+As análises realizadas consideraram principalmente o volume de exportações e importações de cada setor do agronegócio para cada UF por ano e também o paíes de destino das exportações. Sendo assim os dados da tabela operacoes foram agrupados nas tabelas operacoes_por_setor e operacoes_por_destino, excluindo-se as informações de UF que não correspondiam aos Estados brasileiros.
+
+Para melhor apresentação dos dados de importações foram organizados com os anos em colunas utilizando a função `tidyr::pivot_wider`.
+
+Foram criadas outras duas tabelas, uma com o principal setor em volume de exportações para cada UF e outra com a UF que se sobressai para cada setor do agronegócio.
+
+
+## Analizando os dados
+
+Foram calculados para cada UF os dados refentes aos indicadores de vantagem comparativa, que consideram a proporção das exportações de produtos em relação aos demais produtos e em relação às importações e concentração por setor e destino das exportações.
+
+As fórmulas utilizadas para os cálculos são descritas à seguir:
+
+#### Vantagem comparativa revelada
+
+
+```{=tex}
+\begin{equation}
+\label{ivcr}
+IVCR_{ij} = \frac{\left(\frac{X_{ij}}{X_i}\right)}{\left(\frac{X_{wj}}{X_w}\right)}
+\end{equation}
+```
+
+Onde:
+
+• $X_{ij}$ = valor das exportações locais do produto $j$;
+
+• $X_i$ = total das exportações locais;
+
+• $X_{wj}$ = valor das exportações nacionais do produto $j$;
+
+• $X_w$ = total das exportações nacionais.
+
+Se:
+
+$IVCR < 1$ → não possui vantagem comparativa revelada.
+
+$IVCR > 1$ → possui vantagem comparativa revelada.
+
+$IVCR = 1$ → não possui vantagem e nem desvantagem comparativa [@balassa1965].
+
+@laursen1998 apontou uma limitação no índice de vantagem comparativa de Balassa uma vez que os resultados variam entre 0 e 1, e entre 1 e infinito. Como solução sugeriu então um ajuste de modo que o indicador se torne normalizando. Sendo assim o Índice de Vantagem Comparativa Simétrica (VCRS), conforme proposto por Laursen (1998), é dado pela expressão a seguir:
+
+```{=tex}
+\begin{equation}
+\label{vcrs}
+VCRS_{ij} = \frac{IVCR_{ij}-1}{IVCR_{ij}+1}
+\end{equation}
+```
+
+#### Vantagem relativa na exportação
+
+Além das medidas de participação de mercado, duas medidas baseadas no histórico comercial geral de uma localidade podem revelar mais sobre sua competitividade: os índices de vantagem relativa na exportação e competitividade revelada. Tais índices podem demonstrar o comportamento das exportações de um produto por um país em comparação com todos os outros produtos e como uma localidade se compara a outra e ao resto do mundo [@vollrath1989].
+
+```{=tex}
+\begin{equation}
+\label{vre}
+VRE_{ij} = ln\left[\frac{\frac{X_{ij}}{X_{ir}}}{\frac{X_{ir}}{X_{wr}}}\right]
+\end{equation}
+```
+
+```{=tex}
+\begin{equation}
+\label{cr}
+CR_{ij} = ln\left[\frac{\frac{X_{ij}}{X_{ir}}}{\frac{X_{ir}}{X_{wr}}}\middle/\frac{\frac{M_{ij}}{M_{ir}}}{\frac{M_{ir}}{M_{wr}}}\right]
+\end{equation}
+```
+
+onde:
+
+• $X_{jr}$ → total das exportações do produto j excluindo o local $i$;
+
+• $X_{ir}$ → valor das exportações locais excluindo o produto $j$;
+
+• $X_{wr}$ → total das exportações excluindo as exportações do produto $j$; e
+
+• $M$ → valor das importações.
+
+### Índice de comércio intraindústria
+
+De acordo com @bojnec2001 as medidas de vantagem comparativa, os padrões nos fluxos de comércio e na especialização do comércio são determinados por fatores de oferta e demanda. Nesse sentido, além da participação relativa nas exportações, aspectos como a concentração dos mercados em poucos produtos ou destinos e a existência de fluxos de comércio intra e intersetorial impactam a competitividade das localidades. @grubel1975 fizeram uma contribuição substancial para o estudo dos determinantes dos fluxos de comércio intraindústria versus interindústria [@greenaway1984; @loertscher1980].
+
+A concepção de indústria pode considerar a agregação de produtos que, de acordo com características comuns, são classificados nos mesmos níveis de agregação por organismos internacionais como a União Europeia e a Organização Mundial do Comércio. O comércio intraindústria é definido como o valor das exportações de um setor que corresponde exatamente às importações do mesmo setor. O comércio interindustrial é definido como valor do comércio total remanescente após a subtração das exportações ou importações líquidas da indústria [@grubel1975, p. 20].
+
+A análise comparativa do índice de comércio intraindústria de Grubel e Lloyd (GL) entre localidades como Estados ou países se dá pela seguinte expressão:
+
+```{=tex}
+\begin{equation}
+\label{gl}
+GL_{i} = \frac{\sum{[(X_{ij}+M_{ij})-|X_{ij}-M_{ij}|}]}{\sum{(X_{ij}+M_{ij})}}
+\end{equation}
+```
+
+onde $X$ e $M$ representam respectivamente o valor das exportações e importações do setor $j$ e do local $i$, enquanto $(X_{ij} + M_{ij})$ indica o comércio total do setor $j$, $(X_{ij} + M_{ij}) - |X_{ij} - M_{ij}|$ representa o comércio intraindústria e $|X_{ij} - M_{ij}|$ representa o comércio interindústria [@grubel1975].
+
+### Coeficientes de concentração das exportações
+
+Calculou-se também o índice de @hirschman1945 [p. 159] para o cálculo de concentração do comércio de determinada localidade por destino e por agregação de produtos que pode ser representado pelas seguintes expressões:
+
+```{=tex}
+\begin{equation}
+\label{icp}
+ICP_{i} = \sqrt {\sum {\left[\frac{X_{ij}}{X_{i}}\right]^2}}
+\end{equation}
+```
+e,
+
+```{=tex}
+\begin{equation}
+\label{icd}
+ICD_{i} = \sqrt {\sum {\left[\frac{X_{ik}}{X_{i}}\right]^2}}
+\end{equation}
+```
+onde $X_{ik}$ = valor das exportações do local $i$ para o destino $k$.
+
+
+Para verificar a relação entre os indices de concentração e os indices de vantagem comparativa adotou-se a Análise de Correção Canônica (ACC), que visa identificar e quantificar a associação entre dois conjuntos de variáveis e "permite que, dentre as variáveis preditoras, sejam identificadas aquelas estatisticamente significantes para explicar o comportamento do conjunto de variáveis dependentes" [@favero2017].
+
+A ACC converte as variáveis originais dos dois conjuntos em variáveis canônicas que maximizam a relação linear entre as variáveis consideradas em conjunto. A hipótese do modelo teórico da ACC é dada por:
+
+```{=tex}
+\begin{equation}
+\label{acc}
+Y_1 + ⋯ + Y_p = f(X_1 + ⋯+ X_q )
+\end{equation}
+```
+
+onde $Y$ e $X$ representam, respectivamente as variáveis dependentes e explicativas do modelo, sendo $p$ o número de possíveis variáveis dependentes e $q$ o número de possíveis variáveis independentes.
+
+Embora seja preferível que as variáveis apresentem uma relação de dependência, a análise não implica que essa relação seja explícita. Sendo assim, tanto os indices de vantagem comparativa quantos os indices de concentração poderiam ser considerados como variáveis dependentes, uma vez que a classificação de variáveis como dependentes ou independentes é de pouca importância para a estimação estatística das funções canônicas, pois a análise de correlação canônica pondera ambas as variáveis estatísticas para maximizar a correlação e não enfatiza qualquer variável estatística em particular [@hairjr2009].
+
+Nesse estudo assumiu-se que os indices de vantagem comparativa podem ser explicados em parte pelo indices de concentração de modo que o percentual total de variância explicada dos índices de competitividade pelos scores do Ranking, chamado de medida de redundância total (MRT), seja significativo. Seguindo @hairjr2009, a seleção das variáveis estatísticas para análise considerou três critérios: o nível de significância, a magnitude da correlação canônica e a medida de redundância.
+
+O nível de significância entre as correlações canônicas foi testado por meio do teste Lambda de Wilks usando a aproximação F de Rao ao nível de significância de 95%. A magnitude da correlação foi medida pela correlação entre as variáveis independentes e cada variável canônica $u_n$ e entre as variáveis dependentes e cada variável canônica $v_n$, ambas com $n = 1, ..., 6$. Já a MRT foi obtida pela estimação do percentual de variância explicada a partir dos dois conjuntos de dados [@favero2017].
+
+A seguir são apresentados os principais, para cada setor a UF que apresentou o maior volume de exportações no período. Destaca-se o caso de São que aparece como lider em exportações em 10 dos 25 setores analisados.
+
+```{r Tabela3}
+capt <- "Principais Estados exportadores por grupo de produtos\\label{tabela3}"
+principal_uf_por_setor |> 
+  mutate(
+    across(
+    .cols = c(2:12),
+    .fns = ~ .x / 1000000
+    )
+  ) |>
+  kbl(valign = "c", align = c("l", "l", "r", "r", "r", "r", "r", "r"), 
+      caption = capt, digits = 2) %>% 
+  column_spec(2, width = "10cm") %>% 
+  collapse_rows(columns = 1, valign = "middle") %>% 
+  kable_styling(full_width = T, font_size = 10, 
+                latex_options = c("striped", "hold_position", "scale_down"))
+
+```
+Outra informação importante é o setor predominando em cada UF representando a principal atividade exportadora do Estado. Verifica-se que os produtos do Complexo Soja são os principais produtos de exportação em 11 dos 27 Estados brasileiros, o que indinca alta concentração em poucos produtos.
+
+```{r Tabela4}
+capt <- "Principais grupos de produtos exportados por UF \\label{tabela4}"
+principal_setor_por_uf |> 
+  mutate(
+    across(
+    .cols = c(2:12),
+    .fns = ~ .x / 1000000
+    )
+  ) |>
+  kbl(valign = "c", align = c("l", "l", "r", "r", "r", "r", "r", "r"), 
+      caption = capt, digits = 2) %>% 
+  column_spec(2, width = "10cm") %>% 
+  collapse_rows(columns = 1, valign = "middle") %>% 
+  kable_styling(full_width = T, font_size = 10, 
+                latex_options = c("striped", "hold_position", "scale_down"))
+
+```
+A tabela a seguir apresenta o resumo dos indicadores de vantagem comparativa e concentração calculados para servir de base para as análises posteriores.
+
+
+```{r Tabela5, echo=FALSE}
+indicadores_por_uf_ano |> 
+  DT::datatable(options = list(dom = 'ftip')) |> 
+  DT::formatStyle(columns = c(1:9), fontSize = '75%') |> 
+  formatRound(columns=c(3:9), digits=3)
+```
+
+Foram calculadas as matrizes de correlação das variáveis entre os grupos e intergrupos. Conforme apresentado na figura a seguir as variáveis de concentração não são correlacionadas enquanto que as variáveis de vantagem comparativa apresentam correlação.
+
+```{r correlação, fig.cap="Correlação entre as variáveis \\label{figura2}", fig.align='center', fig.dim= c(4, 4), cache=TRUE}
+img.matcor(correl, type = 2)
+```
+
+
+Os scores de correlação entre as variáveis podem ser observados na tabela a seguir.
+
+```{r tabela6}
+tbl <- correl$XYcor
+tbl |> 
+  DT::datatable(options = list(dom = 't')) |> 
+  DT::formatStyle(columns = c(1:7), fontSize = '75%') |> 
+  formatRound(columns=c(1:7), digits=3)
+```
+
+As correlações canônicas entre as variáveis indicam que existe forte relação entre o conjunto u1v1. Esse fato confirma que pode existir correlação entre os dois conjuntos de variáveis, ou seja, existe uma relação entre os índices de competividade e de concentração por produto e destino.
+
+```{r print_ca}
+kbl(tabela8, caption = "Correlações canônicas entre as variáveis estatísticas \\label{tabela8}", 
+    digits = 4, linesep = "")%>%
+  kable_styling(full_width = T, font_size = 11, 
+                latex_options = c("striped", "hold_position")) 
+```
+
+A significância das correlações canônicas, medida pelo teste Pillai indica que ao menos uma das correlações entre os pares de variáveis de 1 até 3 é significativamente diferente de 0, enquanto a significância entre os pares de 2 até 3 indica que nenhuma correlação entre eles é diferente de 0 ao nível de 5%. Isso demonstra que o primeiro modelo deve ser considerado nas análises.
+
+```{r tabela9}
+kbl(tabela9, caption = "Traço de Pillai com aproximação F de Rao", 
+    digits = 4, escape = F) |>
+  kable_styling(full_width = T, font_size = 11, 
+                latex_options = c("striped", "hold_position")) |> 
+  footnote(symbol = "Significante ao nível de 95% de confiança")  
+```
+Uma vez determinado o par de variáveis canônicas significativas, a estimação das correlações entre as variáveis originais e as variáveis estatísticas demonstrou que as variáveis VCRS, GL e ICP foram as que melhor se ajustaram à variável canônica v1. 
+
+```{r tabela10}
+kbl(tabela10, caption = paste("Correlação entre as variáveis padronizadas", 
+                              "e as variáveis canônicas independentes \\label{tabela10}"), 
+    digits = 4, escape = F)%>%
+  kable_styling(full_width = T, font_size = 11, 
+                latex_options = c("striped", "hold_position")) 
+# %>% 
+  # row_spec(4, extra_css = "border-bottom: 2px solid") %>% 
+  # row_spec(c(1:5,7:13), extra_css = "border-bottom: none") %>% 
+  # column_spec(1, border_right = T)
+```
+Os resultados indicam que existe relação entre os grupos de variáveis, de modo que pode-se inferir que as índices de concentração das exportações, tanto por setor, com por destino afetam a competividade medida. Esses resultados reforçam a necessidade de diversificação da base exportadora dos Estados a fim de que não sejam dependentes de poucos produtos, sobretudo *commodities* que geralmente tem seus preços definidos pelos mercados externos e apresentam auto risco.
+
+Como não era objetivo deste relatório a análise aprofunda dos indicadores, concentrou-se na construção das tabelas com o emprego dos conceitos explorados no curso R4DS. De qualquer forma, foi possível constatar uma ampla gama de possibilidades de análises dos dados utilizados por meio do R.
+
+## Referências
+
+<div id="refs"></div>
+
+## Apêndice - Scripts R
+
+```{r echo=TRUE, warning=FALSE, cache=TRUE, file='R/tabelas_resumo.R'}
+
+```
+
+```{r echo=TRUE, warning=FALSE, file='R/analises.R'}
+
+
+```
